@@ -1,0 +1,156 @@
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# All 78 lineups in order
+lineups <- c(
+  "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT", 
+  "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT",
+  "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT",
+  "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT",
+  "Brunson-Bridges-Diawara-Yabusele-Hukporti", "Brunson-Bridges-Diawara-Yabusele-Hukporti",
+  "Brunson-Bridges-Diawara-Yabusele-Hukporti", "Brunson-Bridges-Diawara-Yabusele-Hukporti",
+  "Brunson-Clarkson-OG-Yabusele-Hukporti", "Brunson-Clarkson-OG-Yabusele-Hukporti",
+  "Brunson-Clarkson-OG-Yabusele-Hukporti", "Brunson-Clarkson-OG-Yabusele-Hukporti",
+  "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT",
+  "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-McBride-Bridges-OG-KAT", "Kolek-McBride-McCullar-OG-KAT",
+  "Kolek-McBride-McCullar-OG-KAT", "Kolek-McBride-McCullar-OG-Yabusele", "Kolek-McBride-McCullar-OG-Yabusele",
+  "Kolek-McBride-McCullar-OG-Yabusele", "Kolek-McBride-McCullar-OG-Yabusele", "Kolek-McBride-McCullar-Yabusele-Hukporti",
+  "Kolek-McBride-McCullar-Yabusele-Hukporti", "Brunson-McBride-Bridges-Yabusele-Hukporti",
+  "Brunson-McBride-Bridges-Yabusele-Hukporti", "Brunson-McBride-Bridges-Yabusele-Hukporti",
+  "Brunson-Bridges-Diawara-Yabusele-Hukporti", "Brunson-Bridges-OG-Diawara-Hukporti",
+  "Brunson-Bridges-OG-Diawara-Hukporti", "Brunson-Bridges-OG-Diawara-Hukporti", "Brunson-Bridges-OG-Diawara-Hukporti",
+  "Brunson-Bridges-OG-Diawara-Hukporti", "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT",
+  "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT", "Brunson-Bridges-OG-Diawara-KAT",
+  "Brunson-McCullar-Bridges-OG-KAT", "Brunson-McCullar-Bridges-OG-KAT", "Brunson-McBride-McCullar-OG-Jemison",
+  "Brunson-McBride-McCullar-Yabusele-Jemison", "Brunson-McBride-McCullar-Yabusele-Jemison",
+  "Brunson-McBride-McCullar-Yabusele-Jemison", "Brunson-McBride-McCullar-Yabusele-Jemison",
+  "Brunson-Clarkson-McBride-Yabusele-Jemison", "Brunson-Clarkson-McBride-Yabusele-Jemison",
+  "Brunson-Clarkson-McBride-Yabusele-Jemison", "Brunson-Clarkson-McBride-Yabusele-Jemison",
+  "Brunson-Clarkson-McBride-OG-KAT", "Brunson-Clarkson-McBride-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT",
+  "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT",
+  "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT", "Kolek-Clarkson-Bridges-OG-KAT",
+  "Kolek-Clarkson-McBride-OG-KAT", "Kolek-Clarkson-McBride-OG-KAT", "Brunson-McBride-Bridges-OG-KAT",
+  "Brunson-McBride-Bridges-OG-KAT", "Brunson-McBride-Bridges-Yabusele-KAT", "Brunson-McBride-Bridges-OG-KAT",
+  "Brunson-McBride-Bridges-OG-KAT", "Brunson-McBride-Bridges-OG-KAT", "Brunson-McBride-Bridges-OG-KAT",
+  "Brunson-McBride-Bridges-OG-KAT", "Brunson-McBride-Bridges-OG-KAT"
+)
+
+# Parse each lineup
+parse_lineup <- function(lineup) {
+  players <- strsplit(lineup, "-")[[1]]
+  c(
+    Brunson = as.integer("Brunson" %in% players),
+    McBride = as.integer("McBride" %in% players),
+    Clarkson = as.integer("Clarkson" %in% players),
+    Bridges = as.integer("Bridges" %in% players),
+    OG = as.integer("OG" %in% players),
+    Diawara = as.integer("Diawara" %in% players),
+    Yabusele = as.integer("Yabusele" %in% players),
+    Hukporti = as.integer("Hukporti" %in% players),
+    KAT = as.integer("KAT" %in% players),
+    McCullar = as.integer("McCullar" %in% players),
+    Jemison = as.integer("Jemison" %in% players),
+    Kolek = as.integer("Kolek" %in% players)
+  )
+}
+
+# Create data frame
+lineup_matrix <- t(sapply(lineups, parse_lineup))
+lineup_data <- as.data.frame(lineup_matrix)
+lineup_data$Possession <- 1:78
+
+# Calculate player possession counts
+player_counts <- lineup_data %>%
+  select(-Possession) %>%
+  summarise(across(everything(), sum)) %>%
+  pivot_longer(everything(), names_to = "Player", values_to = "Possessions")
+
+# Reshape for circular viz
+lineup_long <- lineup_data %>%
+  pivot_longer(cols = -Possession, names_to = "Player", values_to = "On_Court") %>%
+  filter(On_Court == 1)
+
+# Set player order and add angle calculations
+player_order <- c("Brunson", "Bridges", "OG", "KAT", "McBride", "Diawara",
+                  "Clarkson", "Yabusele", "Hukporti", "McCullar", "Jemison", "Kolek")
+
+lineup_long$Player <- factor(lineup_long$Player, levels = player_order)
+lineup_long$Player_Num <- as.numeric(lineup_long$Player)
+lineup_long$Angle <- (lineup_long$Player_Num - 1) * (360 / 12)
+
+# Create circular/radial visualization
+ggplot(lineup_long, aes(x = Possession, y = Player_Num, fill = Player)) +
+  # Add radial grid lines
+  geom_hline(yintercept = 1:12, color = "#E5E7EB", size = 0.3, alpha = 0.5) +
+  
+  # Add shadow layer
+  geom_point(aes(alpha = 0.2), shape = 21, size = 4.5, stroke = 0,
+             position = position_nudge(x = 0.3, y = -0.1)) +
+  
+  # Main points with glow effect
+  geom_point(shape = 21, size = 4, stroke = 1.5, color = "white", alpha = 0.95) +
+  
+  # Inner glow
+  geom_point(aes(alpha = 0.4), size = 6, stroke = 0, color = NA) +
+  
+  # Enhanced color scheme
+  scale_fill_manual(
+    values = c(
+      "Brunson" = "#0051BA", "McBride" = "#FF6B35", "Clarkson" = "#A855F7",
+      "Bridges" = "#06B6D4", "OG" = "#10B981", "Diawara" = "#EF4444",
+      "Yabusele" = "#F59E0B", "Hukporti" = "#14B8A6", "KAT" = "#1E293B",
+      "McCullar" = "#EA580C", "Jemison" = "#6B7280", "Kolek" = "#7C3AED"
+    )
+  ) +
+  
+  scale_alpha_identity() +
+  scale_y_continuous(breaks = 1:12, labels = player_order, expand = c(0.05, 0.05)) +
+  scale_x_continuous(breaks = seq(0, 80, 10), expand = c(0.02, 0)) +
+  
+  # Add vertical milestone lines
+  geom_vline(xintercept = seq(10, 70, 10), linetype = "dotted", 
+             color = "#CBD5E1", size = 0.4, alpha = 0.6) +
+  
+  labs(
+    title = "What Does a 12-Man Rotation Look Like?",
+    subtitle = "Half-Court Offensive Possessions vs NOP • 78 Total Possessions • 12/29/2025",
+    x = "Possession Number",
+    y = NULL
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.background = element_rect(fill = "#0F172A", color = NA),
+    panel.background = element_rect(fill = "#1E293B", color = NA),
+    panel.grid.major.x = element_line(color = "#334155", size = 0.4),
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank(),
+    
+    plot.title = element_text(
+      size = 24, face = "bold", hjust = 0.5, 
+      color = "#F8FAFC", margin = margin(b = 8, t = 20)
+    ),
+    plot.subtitle = element_text(
+      size = 12, hjust = 0.5, 
+      color = "#94A3B8", margin = margin(b = 25)
+    ),
+    
+    axis.title.x = element_text(size = 12, face = "bold", color = "#CBD5E1", margin = margin(t = 15)),
+    axis.text.x = element_text(size = 10, color = "#94A3B8", face = "bold"),
+    axis.text.y = element_text(size = 11, color = "#F8FAFC", face = "bold", margin = margin(r = 10)),
+    axis.line = element_line(color = "#334155", size = 0.5),
+    
+    legend.position = "none",
+    plot.margin = margin(25, 30, 25, 30),
+    panel.border = element_rect(color = "#475569", fill = NA, size = 1)
+  ) +
+  
+  # Corner note
+  annotate("rect", xmin = 58, xmax = 77.5, ymin = 0.3, ymax = 1,
+           fill = "#1E293B", color = "#475569", size = 0.8, alpha = 0.95) +
+  annotate("text", x = 67.75, y = 0.65, 
+           label = "Data & Visual by ShaxNBA",
+           hjust = 0.5, size = 3.2, color = "#94A3B8", fontface = "bold.italic")
+
+print(last_plot())
