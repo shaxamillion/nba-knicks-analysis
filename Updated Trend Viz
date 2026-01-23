@@ -1,0 +1,149 @@
+library(ggplot2)
+library(dplyr)
+
+# Create the dataset
+delay_data <- data.frame(
+  Game = 1:45,
+  Date = c("10/22/2025", "10/24/2025", "10/26/2025", "10/28/2025", "10/31/2025",
+           "11/2/2025", "11/3/2025", "11/5/2025", "11/9/2025", "11/11/2025",
+           "11/12/2025", "11/14/2025", "11/17/2025", "11/19/2025", "11/22/2025",
+           "11/24/2025", "11/26/2025", "11/28/2025", "11/30/2025", "12/2/2025",
+           "12/3/2025", "12/5/2025", "12/7/2025", "12/9/2025", "12/13/2025",
+           "12/16/2025", "12/18/2025", "12/19/2025", "12/21/2025", "12/23/2025",
+           "12/25/2025", "12/27/2025", "12/29/2025", "12/31/2025", "1/2/2026",
+           "1/3/2026", "1/5/2026", "1/7/2026", "1/9/2026", "1/11/2026",
+           "1/14/2026", "1/15/2026", "1/17/2026", "1/19/2026", "1/21/2026"),
+  Opp = c("CLE", "BOS", "MIA", "MIL", "CHI", "CHI", "WSH", "MIN", "BKN", "MEM",
+          "ORL", "MIA", "MIA", "DAL", "ORL", "BKN", "CHA", "MIL", "TOR", "BOS",
+          "CHA", "UTA", "ORL", "TOR", "ORL", "SAS", "IND", "PHI", "MIA", "MIN",
+          "CLE", "ATL", "NOP", "SAS", "ATL", "PHI", "DET", "LAC", "PHX", "POR",
+          "SAC", "GSW", "PHX", "DAL", "BKN"),
+  Delay = c(7, 7, 18, 17, 19, 24, 25, 13, 11, 25,
+            16, 14, 7, 19, 22, 16, 9, 17, 25, 15,
+            11, 4, 0, 21, 5, 9, 10, 16, 7, 12,
+            12, 2, 9, 4, 7, 14, 3, 10, 20, 3,
+            6, 25, 17, 16, 18),
+  stringsAsFactors = FALSE
+)
+
+# Calculate mean
+mean_delay <- mean(delay_data$Delay)
+
+# Create the plot
+p <- ggplot(delay_data, aes(x = Game, y = Delay)) +
+  
+  # Add shaded region for high usage
+  annotate("rect", xmin = 0, xmax = 46, ymin = 20, ymax = 28,
+           fill = "#9B59B6", alpha = 0.08) +
+  annotate("text", x = 2, y = 26, 
+           label = "High Usage", 
+           size = 3.5, color = "#9B59B6", fontface = "bold.italic", hjust = 0) +
+  
+  # Add shaded region for low usage
+  annotate("rect", xmin = 0, xmax = 46, ymin = 0, ymax = 8,
+           fill = "#E74C3C", alpha = 0.08) +
+  annotate("text", x = 2, y = 1.5, 
+           label = "Low Usage", 
+           size = 3.5, color = "#E74C3C", fontface = "bold.italic", hjust = 0) +
+  
+  # Add reference line at mean
+  geom_hline(yintercept = mean_delay, 
+             linetype = "dashed", color = "#34495E", linewidth = 1, alpha = 0.7) +
+  annotate("text", x = 42, y = mean_delay + 2, 
+           label = paste0("Season Avg: ", round(mean_delay, 1), "%"), 
+           size = 4, color = "#34495E", fontface = "bold") +
+  
+  # Add trend line
+  geom_smooth(method = "loess", se = TRUE, 
+              color = "#E74C3C", fill = "#E74C3C", alpha = 0.15, 
+              linewidth = 2.5, span = 0.35) +
+  
+  # Add connecting line
+  geom_line(color = "#95A5A6", linewidth = 1.5, alpha = 0.7) +
+  
+  # Add points
+  geom_point(aes(fill = Delay), 
+             size = 6, shape = 21, color = "#2C3E50", 
+             stroke = 1.3, alpha = 0.9) +
+  
+  # Color gradients
+  scale_color_gradient2(
+    low = "#E74C3C",
+    mid = "#F39C12", 
+    high = "#9B59B6",
+    midpoint = 13,
+    guide = "none"
+  ) +
+  
+  scale_fill_gradient2(
+    low = "#E74C3C",
+    mid = "#F39C12", 
+    high = "#9B59B6",
+    midpoint = 13,
+    name = "Delay\nUsage %",
+    limits = c(0, 26)
+  ) +
+  
+  # Scales
+  scale_x_continuous(
+    breaks = seq(1, 45, 2),
+    labels = delay_data$Opp[seq(1, 45, 2)],
+    limits = c(0, 46)
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 25, 5),
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, 28)
+  ) +
+  
+  # Labels
+  labs(
+    title = "Mike Brown Assisting KAT",
+    subtitle = "How often the Knicks use 'Delay' action in their offense",
+    x = "Opponent",
+    y = "Delay Motion Offense Usage %",
+    caption = "Data via ShaxNBA"
+  ) +
+  
+  # Theme
+  theme_minimal(base_size = 12, base_family = "sans") +
+  theme(
+    plot.background = element_rect(fill = "#FAF9F6", color = NA),
+    panel.background = element_rect(fill = "#FFFFFF", color = NA),
+    panel.grid.major.y = element_line(color = "#E0E0E0", linewidth = 0.4),
+    panel.grid.minor.y = element_line(color = "#F0F0F0", linewidth = 0.2),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    
+    plot.title = element_text(
+      hjust = 0.5, size = 22, face = "bold", 
+      color = "#2C3E50", margin = margin(b = 8)
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, size = 11, color = "#5D6D7E",
+      lineheight = 1.3,
+      margin = margin(b = 25)
+    ),
+    plot.caption = element_text(
+      size = 8.5, color = "#95A5A6", hjust = 1,
+      lineheight = 1.3, margin = margin(t = 18)
+    ),
+    
+    legend.position = "right",
+    legend.title = element_text(size = 11, face = "bold", color = "#2C3E50", lineheight = 1.1),
+    legend.text = element_text(size = 10, color = "#34495E"),
+    legend.background = element_rect(fill = "#FAF9F6", color = NA),
+    legend.key.height = unit(1.2, "cm"),
+    
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, 
+                               size = 9, color = "#34495E", face = "bold"),
+    axis.text.y = element_text(size = 11, color = "#34495E", face = "bold"),
+    axis.title = element_text(size = 12, face = "bold", color = "#2C3E50"),
+    axis.title.x = element_text(margin = margin(t = 12)),
+    axis.title.y = element_text(margin = margin(r = 12)),
+    axis.ticks = element_blank(),
+    
+    plot.margin = margin(30, 30, 30, 30)
+  )
+
+print(p)
