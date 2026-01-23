@@ -60,57 +60,52 @@ lineup_matrix <- t(sapply(lineups, parse_lineup))
 lineup_data <- as.data.frame(lineup_matrix)
 lineup_data$Possession <- 1:78
 
-# Calculate player possession counts
-player_counts <- lineup_data %>%
-  select(-Possession) %>%
-  summarise(across(everything(), sum)) %>%
-  pivot_longer(everything(), names_to = "Player", values_to = "Possessions")
-
-# Reshape for circular viz
+# Reshape for plotting
 lineup_long <- lineup_data %>%
   pivot_longer(cols = -Possession, names_to = "Player", values_to = "On_Court") %>%
   filter(On_Court == 1)
 
-# Set player order and add angle calculations
-player_order <- c("Brunson", "Bridges", "OG", "KAT", "McBride", "Diawara",
-                  "Clarkson", "Yabusele", "Hukporti", "McCullar", "Jemison", "Kolek")
+# Set player order
+player_order <- c("Brunson", "McBride", "Clarkson", "Bridges", "OG", "Diawara",
+                  "Yabusele", "Hukporti", "KAT", "McCullar", "Jemison", "Kolek")
+lineup_long$Player <- factor(lineup_long$Player, levels = rev(player_order))
 
-lineup_long$Player <- factor(lineup_long$Player, levels = player_order)
-lineup_long$Player_Num <- as.numeric(lineup_long$Player)
-lineup_long$Angle <- (lineup_long$Player_Num - 1) * (360 / 12)
-
-# Create circular/radial visualization
-ggplot(lineup_long, aes(x = Possession, y = Player_Num, fill = Player)) +
-  # Add radial grid lines
-  geom_hline(yintercept = 1:12, color = "#E5E7EB", size = 0.3, alpha = 0.5) +
+# Create the chart with enhanced visual design
+ggplot(lineup_long, aes(x = Possession, y = Player, fill = Player)) +
+  # Add subtle shadow effect with multiple layers
+  geom_tile(aes(alpha = 0.3), color = NA, size = 0, width = 0.98, height = 0.88, 
+            position = position_nudge(x = 0.15, y = -0.08)) +
   
-  # Add shadow layer
-  geom_point(aes(alpha = 0.2), shape = 21, size = 4.5, stroke = 0,
-             position = position_nudge(x = 0.3, y = -0.1)) +
+  # Main tiles with white borders
+  geom_tile(color = "white", size = 1.2, width = 0.95, height = 0.85, alpha = 0.95) +
   
-  # Main points with glow effect
-  geom_point(shape = 21, size = 4, stroke = 1.5, color = "white", alpha = 0.95) +
+  # Add glossy highlight effect on top
+  geom_tile(aes(alpha = 0.15), fill = "white", color = NA, 
+            width = 0.95, height = 0.4, position = position_nudge(y = 0.2)) +
   
-  # Inner glow
-  geom_point(aes(alpha = 0.4), size = 6, stroke = 0, color = NA) +
-  
-  # Enhanced color scheme
+  # Enhanced color scheme with more vibrant colors
   scale_fill_manual(
     values = c(
-      "Brunson" = "#0051BA", "McBride" = "#FF6B35", "Clarkson" = "#A855F7",
-      "Bridges" = "#06B6D4", "OG" = "#10B981", "Diawara" = "#EF4444",
-      "Yabusele" = "#F59E0B", "Hukporti" = "#14B8A6", "KAT" = "#1E293B",
-      "McCullar" = "#EA580C", "Jemison" = "#6B7280", "Kolek" = "#7C3AED"
+      "Brunson" = "#0051BA",    # Deeper Knicks blue
+      "McBride" = "#FF6B35",    # Bright orange
+      "Clarkson" = "#A855F7",   # Vibrant purple
+      "Bridges" = "#06B6D4",    # Cyan
+      "OG" = "#10B981",         # Emerald green
+      "Diawara" = "#EF4444",    # Bright red
+      "Yabusele" = "#F59E0B",   # Amber
+      "Hukporti" = "#14B8A6",   # Teal
+      "KAT" = "#1E293B",        # Slate
+      "McCullar" = "#EA580C",   # Deep orange
+      "Jemison" = "#6B7280",    # Cool gray
+      "Kolek" = "#7C3AED"       # Violet
     )
   ) +
   
   scale_alpha_identity() +
-  scale_y_continuous(breaks = 1:12, labels = player_order, expand = c(0.05, 0.05)) +
-  scale_x_continuous(breaks = seq(0, 80, 10), expand = c(0.02, 0)) +
   
-  # Add vertical milestone lines
-  geom_vline(xintercept = seq(10, 70, 10), linetype = "dotted", 
-             color = "#CBD5E1", size = 0.4, alpha = 0.6) +
+  # Add possession milestone markers
+  geom_vline(xintercept = c(20, 40, 60), linetype = "dotted", 
+             color = "#CBD5E1", size = 0.8, alpha = 0.6) +
   
   labs(
     title = "What Does a 12-Man Rotation Look Like?",
@@ -119,38 +114,55 @@ ggplot(lineup_long, aes(x = Possession, y = Player_Num, fill = Player)) +
     y = NULL
   ) +
   
-  theme_minimal(base_size = 14) +
+  scale_x_continuous(breaks = seq(0, 80, 10), expand = c(0.01, 0)) +
+  
+  theme_minimal(base_size = 14, base_family = "sans") +
   theme(
-    plot.background = element_rect(fill = "#0F172A", color = NA),
-    panel.background = element_rect(fill = "#1E293B", color = NA),
-    panel.grid.major.x = element_line(color = "#334155", size = 0.4),
+    plot.background = element_rect(fill = "#FAFAF8", color = NA),
+    panel.background = element_rect(fill = "#FAFAF8", color = NA),
+    panel.grid.major.x = element_line(color = "#E5E7EB", size = 0.4, linetype = "solid"),
     panel.grid.minor = element_blank(),
     panel.grid.major.y = element_blank(),
     
     plot.title = element_text(
-      size = 24, face = "bold", hjust = 0.5, 
-      color = "#F8FAFC", margin = margin(b = 8, t = 20)
+      size = 24, 
+      face = "bold", 
+      hjust = 0.5, 
+      color = "#1E293B",
+      margin = margin(b = 8, t = 15),
+      family = "sans"
     ),
     plot.subtitle = element_text(
-      size = 12, hjust = 0.5, 
-      color = "#94A3B8", margin = margin(b = 25)
+      size = 12, 
+      hjust = 0.5, 
+      color = "#64748B",
+      margin = margin(b = 25),
+      family = "sans"
     ),
     
-    axis.title.x = element_text(size = 12, face = "bold", color = "#CBD5E1", margin = margin(t = 15)),
-    axis.text.x = element_text(size = 10, color = "#94A3B8", face = "bold"),
-    axis.text.y = element_text(size = 11, color = "#F8FAFC", face = "bold", margin = margin(r = 10)),
-    axis.line = element_line(color = "#334155", size = 0.5),
+    axis.title.x = element_text(
+      size = 12, 
+      face = "bold", 
+      color = "#475569",
+      margin = margin(t = 15)
+    ),
+    axis.text.x = element_text(size = 10, color = "#64748B", face = "bold"),
+    axis.text.y = element_text(size = 12, color = "#1E293B", face = "bold", 
+                               margin = margin(r = 10)),
     
     legend.position = "none",
-    plot.margin = margin(25, 30, 25, 30),
-    panel.border = element_rect(color = "#475569", fill = NA, size = 1)
+    
+    plot.margin = margin(25, 25, 25, 25),
+    
+    # Add subtle border around the entire plot
+    panel.border = element_rect(color = "#E5E7EB", fill = NA, size = 0.5)
   ) +
   
-  # Corner note
-  annotate("rect", xmin = 58, xmax = 77.5, ymin = 0.3, ymax = 1,
-           fill = "#1E293B", color = "#475569", size = 0.8, alpha = 0.95) +
-  annotate("text", x = 67.75, y = 0.65, 
+  # Enhanced corner note with box
+  annotate("rect", xmin = 59, xmax = 77.5, ymin = 0.2, ymax = 0.8,
+           fill = "white", color = "#E5E7EB", size = 0.5, alpha = 0.9) +
+  annotate("text", x = 68.25, y = 0.5, 
            label = "Data & Visual by ShaxNBA",
-           hjust = 0.5, size = 3.2, color = "#94A3B8", fontface = "bold.italic")
+           hjust = 0.5, size = 3.2, color = "#64748B", fontface = "bold.italic")
 
 print(last_plot())
