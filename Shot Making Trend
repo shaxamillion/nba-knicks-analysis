@@ -2,37 +2,49 @@ library(ggplot2)
 library(dplyr)
 library(scales)
 
-# Create the dataset from the spreadsheet - Regular season games 1-36 (starting at CLE)
+# Create the dataset from the spreadsheet - 49 regular season games starting from CLE
 knicks_data <- data.frame(
-  Game = 1:36,
-  Date = c("10/22/2025", "10/24/2025", "10/26/2025", "10/28/2025", "10/31/2025",
-           "11/2/2025", "11/3/2025", "11/5/2025", "11/9/2025", "11/11/2025",
-           "11/12/2025", "11/14/2025", "11/17/2025", "11/19/2025", "11/22/2025",
-           "11/24/2025", "11/26/2025", "11/28/2025", "11/30/2025", "12/2/2025",
-           "12/3/2025", "12/5/2025", "12/7/2025", "12/9/2025", "12/13/2025",
-           "12/16/2025", "12/18/2025", "12/19/2025", "12/21/2025", "12/23/2025",
-           "12/25/2025", "12/27/2025", "12/29/2025", "12/31/2025", "1/2/2026", "1/3/2026"),
-  Opp = c("CLE", "BOS", "MIA", "MIL", "CHI",
-          "CHI", "WSH", "MIN", "BKN", "MEM",
-          "ORL", "MIA", "MIA", "DAL", "ORL",
-          "BKN", "CHA", "MIL", "TOR", "BOS",
-          "CHA", "UTA", "ORL", "TOR", "ORL",
-          "SAS", "IND", "PHI", "MIA", "MIN",
-          "CLE", "ATL", "NOP", "SAS", "ATL", "PHI"),
-  Grade = c("D+", "C", "F", "C", "A-",
-            "D+", "F", "A", "B-", "D",
-            "D-", "A+", "F", "D+", "D+",
-            "C", "B-", "C+", "B", "C+",
-            "B-", "C", "C-", "B-", "B",
-            "A+", "C+", "C", "A+", "D",
-            "C+", "D+", "B+", "F", "F", "C-"),
-  WinLoss = c("W", "W", "L", "L", "L",
-              "W", "W", "W", "W", "W",
-              "L", "W", "L", "W", "L",
-              "W", "W", "W", "W", "L",
-              "W", "W", "W", "W", "W",
-              "W", "W", "L", "W", "L",
-              "W", "W", "W", "L", "L", "L"),
+  Game = 1:49,
+  Date = c("10/22/2025", "10/24/2025", "10/26/2025", "10/28/2025",
+           "10/31/2025", "11/2/2025", "11/3/2025", "11/5/2025", "11/9/2025",
+           "11/11/2025", "11/12/2025", "11/14/2025", "11/17/2025", "11/19/2025",
+           "11/22/2025", "11/24/2025", "11/26/2025", "11/28/2025", "11/30/2025",
+           "12/2/2025", "12/3/2025", "12/5/2025", "12/7/2025", "12/9/2025",
+           "12/13/2025", "12/16/2025", "12/18/2025", "12/19/2025", "12/21/2025",
+           "12/23/2025", "12/25/2025", "12/27/2025", "12/29/2025", "12/31/2025",
+           "1/2/2026", "1/3/2026", "1/5/2026", "1/7/2026", "1/9/2026",
+           "1/11/2026", "1/14/2026", "1/15/2026", "1/17/2026", "1/19/2026",
+           "1/21/2026", "1/24/2026", "1/27/2026", "1/28/2026", "1/30/2026"),
+  Opp = c("CLE", "BOS", "MIA", "MIL",
+          "CHI", "CHI", "WSH", "MIN", "BKN",
+          "MEM", "ORL", "MIA", "MIA", "DAL",
+          "ORL", "BKN", "CHA", "MIL", "TOR",
+          "BOS", "CHA", "UTA", "ORL", "TOR",
+          "ORL", "SAS", "IND", "PHI", "MIA",
+          "MIN", "CLE", "ATL", "NOP", "SAS",
+          "ATL", "PHI", "DET", "LAC", "PHX",
+          "POR", "SAC", "GSW", "PHX", "DAL",
+          "BKN", "PHI", "SAC", "TOR", "POR"),
+  Grade = c("D+", "C", "F", "C",
+            "A-", "C-", "F", "A+", "B-",
+            "D", "D", "A+", "F", "D+",
+            "C-", "C", "B", "C+", "B+",
+            "C+", "B", "C+", "C-", "B-",
+            "B", "A+", "C+", "C", "A+",
+            "D", "C+", "D+", "B+", "D-",
+            "F", "C", "C", "A-", "B-",
+            "B-", "F", "C-", "F", "F",
+            "A-", "C", "D", "F", "A"),
+  WinLoss = c("W", "W", "L", "L",
+              "L", "W", "W", "W", "W",
+              "W", "L", "W", "L", "W",
+              "L", "W", "W", "W", "W",
+              "L", "W", "W", "W", "W",
+              "W", "W", "W", "L", "W",
+              "L", "W", "W", "W", "L",
+              "L", "L", "L", "W", "L",
+              "W", "L", "L", "L", "L",
+              "W", "W", "W", "W", "W"),
   stringsAsFactors = FALSE
 )
 
@@ -61,7 +73,7 @@ knicks_data <- knicks_data %>%
   )
 
 # Create the plot
-ggplot(knicks_data, aes(x = Game, y = Grade_Numeric)) +
+p <- ggplot(knicks_data, aes(x = Game, y = Grade_Numeric)) +
   # Add horizontal grid lines at grade boundaries
   geom_hline(yintercept = c(0, 3, 6, 9, 12), 
              linetype = "solid", color = "#E0E0E0", linewidth = 0.3) +
@@ -69,19 +81,19 @@ ggplot(knicks_data, aes(x = Game, y = Grade_Numeric)) +
   # Add trend line
   geom_smooth(method = "loess", se = TRUE, 
               color = "#34495E", fill = "#34495E", alpha = 0.1, 
-              linewidth = 1, span = 0.3) +
+              linewidth = 1.2, span = 0.25) +
   
   # Add points colored by grade
   geom_point(aes(fill = Grade_Color), 
-             size = 7, shape = 21, color = "#2C3E50", stroke = 1.5, alpha = 0.9) +
+             size = 6, shape = 21, color = "#2C3E50", stroke = 1.5, alpha = 0.9) +
   
   # Add grade text inside points
   geom_text(aes(label = Grade), 
-            size = 2.5, fontface = "bold", color = "#FFFFFF") +
+            size = 2.2, fontface = "bold", color = "#FFFFFF") +
   
   # Add win/loss indicator below
   geom_point(aes(y = -1.5, color = WinLoss_Color), 
-             size = 4, shape = 15) +
+             size = 3.5, shape = 15) +
   
   # Manual color scales
   scale_fill_identity() +
@@ -96,37 +108,37 @@ ggplot(knicks_data, aes(x = Game, y = Grade_Numeric)) +
   ) +
   
   scale_x_continuous(
-    breaks = seq(1, 36, 1),
+    breaks = seq(1, 49, 1),
     labels = knicks_data$Opp
   ) +
   
   # Labels
   labs(
     title = "New York Knicks Shot Making Performance",
-    subtitle = "2025-26 Season • Shot Quality Grades by Game • Squares indicate W/L (Green = Win, Red = Loss)",
+    subtitle = "2025-26 Season (Games 1-49) • Shot Quality Grades by Game • Squares indicate W/L",
     x = "Opponent",
     y = "Shot Making Grade",
-    caption = "Data: 2025-26 NBA Season | Tracking by ShaxNBA"
+    caption = "Data: 2025-26 NBA Season | Tracking by ShaxNBA | Green square = Win, Red square = Loss"
   ) +
   
   # Theme
-  theme_minimal(base_size = 13, base_family = "sans") +
+  theme_minimal(base_size = 12, base_family = "sans") +
   theme(
     plot.title = element_text(
       hjust = 0.5, 
-      size = 22, 
+      size = 20, 
       face = "bold", 
       color = "#1a1a1a",
       margin = margin(b = 5)
     ),
     plot.subtitle = element_text(
       hjust = 0.5, 
-      size = 11, 
+      size = 10, 
       color = "#666666", 
       margin = margin(b = 20)
     ),
     plot.caption = element_text(
-      size = 9, 
+      size = 8, 
       color = "#95A5A6", 
       hjust = 1,
       margin = margin(t = 15)
@@ -137,9 +149,9 @@ ggplot(knicks_data, aes(x = Game, y = Grade_Numeric)) +
     panel.grid.minor = element_blank(),
     panel.grid.major.x = element_blank(),
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, 
-                               size = 8, color = "#404040", face = "bold"),
-    axis.text.y = element_text(size = 11, color = "#404040", face = "bold"),
-    axis.title = element_text(size = 13, face = "bold", color = "#2C3E50"),
+                               size = 7, color = "#404040", face = "bold"),
+    axis.text.y = element_text(size = 10, color = "#404040", face = "bold"),
+    axis.title = element_text(size = 12, face = "bold", color = "#2C3E50"),
     axis.title.x = element_text(margin = margin(t = 15)),
     axis.title.y = element_text(margin = margin(r = 15)),
     axis.ticks = element_blank(),
@@ -147,4 +159,4 @@ ggplot(knicks_data, aes(x = Game, y = Grade_Numeric)) +
   )
 
 # Display the plot
-print(last_plot())
+print(p)
