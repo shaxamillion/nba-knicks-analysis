@@ -1,0 +1,274 @@
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+lineups <- c(
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Shamet-Hart-Diawara-Robinson",
+  "Brunson-Shamet-Hart-Diawara-Robinson",
+  "Brunson-Shamet-Hart-Diawara-Robinson",
+  "Brunson-Shamet-Hart-Diawara-Robinson",
+  "Brunson-Shamet-OG-Diawara-Robinson",
+  "Brunson-Shamet-OG-Diawara-Robinson",
+  "Brunson-Shamet-OG-Diawara-KAT",
+  "Brunson-Shamet-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Shamet-Bridges-KAT-Robinson",
+  "Alvarado-Shamet-Bridges-KAT-Robinson",
+  "Alvarado-Shamet-Bridges-KAT-Robinson",
+  "Alvarado-Shamet-Bridges-KAT-Robinson",
+  "Brunson-Alvarado-Shamet-Hart-Robinson",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Hart-Bridges-OG-KAT",
+  "Brunson-Shamet-Hart-OG-KAT",
+  "Brunson-Shamet-OG-Diawara-KAT",
+  "Brunson-Shamet-OG-Diawara-Robinson",
+  "Brunson-Shamet-OG-Diawara-Robinson",
+  "Brunson-Shamet-OG-Diawara-Robinson",
+  "Brunson-Shamet-Bridges-Diawara-Robinson",
+  "Brunson-Shamet-Bridges-Diawara-Robinson",
+  "Brunson-Shamet-Bridges-Diawara-Robinson",
+  "Brunson-Shamet-Bridges-Diawara-Robinson",
+  "Brunson-Shamet-Bridges-Diawara-Robinson",
+  "Brunson-Shamet-Bridges-Diawara-Robinson",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Bridges-OG-Diawara-KAT",
+  "Alvarado-Hart-Bridges-Diawara-KAT",
+  "Alvarado-Hart-Bridges-Diawara-KAT",
+  "Alvarado-Hart-Bridges-Diawara-KAT",
+  "Alvarado-Hart-Bridges-Diawara-KAT",
+  "Alvarado-Shamet-Hart-Diawara-KAT",
+  "Alvarado-Shamet-Hart-Diawara-KAT",
+  "Alvarado-Shamet-Hart-Diawara-KAT"
+)
+
+# Net ratings lookup
+lineup_net_ratings <- c(
+  "Brunson-Hart-Bridges-OG-KAT"             = 1.3,
+  "Alvarado-Bridges-OG-Diawara-KAT"         = 84.6,
+  "Brunson-Shamet-Hart-OG-KAT"              = 1.4,
+  "Brunson-Shamet-Hart-Diawara-Robinson"    = 98.2,
+  "Brunson-Shamet-Bridges-Diawara-Robinson" = 31.0,
+  "Brunson-Shamet-OG-Diawara-Robinson"      = 1.8,
+  "Alvarado-Shamet-Bridges-KAT-Robinson"    = 16.7
+)
+
+normalize_lineup <- function(lineup) {
+  paste(sort(strsplit(lineup, "-")[[1]]), collapse = "-")
+}
+
+normalized_ratings <- setNames(
+  lineup_net_ratings,
+  sapply(names(lineup_net_ratings), normalize_lineup)
+)
+
+parse_lineup <- function(lineup) {
+  players <- strsplit(lineup, "-")[[1]]
+  c(
+    Brunson  = as.integer("Brunson"  %in% players),
+    Alvarado = as.integer("Alvarado" %in% players),
+    Shamet   = as.integer("Shamet"   %in% players),
+    Hart     = as.integer("Hart"     %in% players),
+    Bridges  = as.integer("Bridges"  %in% players),
+    OG       = as.integer("OG"       %in% players),
+    Diawara  = as.integer("Diawara"  %in% players),
+    Robinson = as.integer("Robinson" %in% players),
+    KAT      = as.integer("KAT"      %in% players)
+  )
+}
+
+lineup_matrix <- t(sapply(lineups, parse_lineup))
+lineup_data   <- as.data.frame(lineup_matrix)
+lineup_data$Possession <- 1:nrow(lineup_data)
+lineup_data$Lineup     <- lineups
+lineup_data$NormLineup <- sapply(lineups, normalize_lineup)
+lineup_data$NetRating  <- normalized_ratings[lineup_data$NormLineup]
+
+# ── Build shaded region data ─────────────────────────────────────────────────
+# Each contiguous run of the same lineup gets its own shaded block
+lineup_data <- lineup_data %>%
+  mutate(RunID = cumsum(c(1, diff(as.integer(factor(NormLineup))) != 0)))
+
+region_data <- lineup_data %>%
+  group_by(RunID, NormLineup, NetRating) %>%
+  summarise(
+    xmin = min(Possession) - 0.5,
+    xmax = max(Possession) + 0.5,
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(NetRating)) %>%
+  mutate(
+    MidPos = (xmin + xmax) / 2,
+    Label  = paste0(ifelse(NetRating >= 0, "+", ""), NetRating),
+    # Shade color by tier
+    ShadeColor = case_when(
+      NetRating >= 50 ~ "#10B981",
+      NetRating >= 15 ~ "#06B6D4",
+      NetRating >= 0  ~ "#0051BA",
+      TRUE            ~ "#EF4444"
+    )
+  )
+
+# Long format for tiles
+lineup_long <- lineup_data %>%
+  select(-Lineup, -NormLineup, -NetRating, -RunID) %>%
+  pivot_longer(cols = -Possession, names_to = "Player", values_to = "On_Court") %>%
+  filter(On_Court == 1)
+
+player_order <- c("Brunson", "Alvarado", "Shamet", "Hart",
+                  "Bridges", "OG", "Diawara", "Robinson", "KAT")
+lineup_long$Player <- factor(lineup_long$Player, levels = rev(player_order))
+
+player_colors <- c(
+  "Brunson"  = "#0051BA",
+  "Alvarado" = "#A855F7",
+  "Shamet"   = "#FF6B35",
+  "Hart"     = "#06B6D4",
+  "Bridges"  = "#10B981",
+  "OG"       = "#EF4444",
+  "Diawara"  = "#F59E0B",
+  "Robinson" = "#14B8A6",
+  "KAT"      = "#1E293B"
+)
+
+quarter_breaks <- c(16.5, 35.5, 54.5)
+
+# ── Plot ─────────────────────────────────────────────────────────────────────
+ggplot() +
+  
+  # ── 1. Shaded lineup regions (full grid height) ───────────────────────────
+  geom_rect(data = region_data,
+            aes(xmin = xmin, xmax = xmax, ymin = 0.5, ymax = 9.5,
+                fill = ShadeColor),
+            alpha = 0.08, inherit.aes = FALSE) +
+  
+  # ── 2. Colored border around each region ─────────────────────────────────
+  geom_rect(data = region_data,
+            aes(xmin = xmin, xmax = xmax, ymin = 0.5, ymax = 9.5,
+                color = ShadeColor),
+            fill = NA, linewidth = 0.6, linetype = "solid",
+            alpha = 0.5, inherit.aes = FALSE) +
+  
+  # ── 3. Player tiles ───────────────────────────────────────────────────────
+  # Drop shadow
+  geom_tile(data = lineup_long,
+            aes(x = Possession, y = Player, fill = Player),
+            alpha = 0.25, color = NA, width = 0.98, height = 0.88,
+            position = position_nudge(x = 0.15, y = -0.08)) +
+  
+  # Main tile
+  geom_tile(data = lineup_long,
+            aes(x = Possession, y = Player, fill = Player),
+            color = "white", linewidth = 1.2, width = 0.95, height = 0.85,
+            alpha = 0.95) +
+  
+  # Glossy highlight
+  geom_tile(data = lineup_long,
+            aes(x = Possession, y = Player),
+            fill = "white", alpha = 0.15, color = NA,
+            width = 0.95, height = 0.4,
+            position = position_nudge(y = 0.2)) +
+  
+  # ── 4. Net rating labels centered in each shaded region ───────────────────
+  geom_label(data = region_data,
+             aes(x = MidPos, y = 0.05, label = Label, color = ShadeColor,
+                 fill = ShadeColor),
+             alpha = 0.12, label.size = 0.4, label.padding = unit(0.3, "lines"),
+             fontface = "bold", size = 3.8, inherit.aes = FALSE) +
+  
+  # Re-draw label text on top (geom_label fill washes out text color)
+  geom_text(data = region_data,
+            aes(x = MidPos, y = 0.05, label = Label, color = ShadeColor),
+            fontface = "bold", size = 3.8, inherit.aes = FALSE) +
+  
+  scale_fill_manual(
+    values = c(player_colors,
+               "#10B981" = "#10B981",
+               "#06B6D4" = "#06B6D4",
+               "#0051BA" = "#0051BA",
+               "#EF4444" = "#EF4444"),
+    guide = "none"
+  ) +
+  scale_color_identity() +
+  
+  # Quarter dividers
+  geom_vline(xintercept = quarter_breaks, linetype = "dashed",
+             color = "#94A3B8", linewidth = 0.9, alpha = 0.8) +
+  
+  # Quarter labels
+  annotate("text", x = c(8.5, 26, 45, 61),
+           y = 9.6, label = c("Q1", "Q2", "Q3", "Q4"),
+           size = 3.5, fontface = "bold", color = "#64748B") +
+  
+  scale_x_continuous(breaks = seq(0, 70, 10), expand = c(0.01, 0)) +
+  scale_y_discrete(expand = expansion(add = c(1.0, 0.8))) +
+  
+  labs(
+    title    = "What Does a 9-Man Rotation Look Like?",
+    subtitle = "Half-Court Offensive Possessions vs MIL  •  68 Total Possessions  •  2/27/2026",
+    x        = "Possession Number",
+    y        = NULL
+  ) +
+  
+  theme_minimal(base_size = 14, base_family = "sans") +
+  theme(
+    plot.background    = element_rect(fill = "#FAFAF8", color = NA),
+    panel.background   = element_rect(fill = "#FAFAF8", color = NA),
+    panel.grid.major.x = element_line(color = "#E5E7EB", linewidth = 0.4),
+    panel.grid.minor   = element_blank(),
+    panel.grid.major.y = element_blank(),
+    
+    plot.title    = element_text(size = 22, face = "bold", hjust = 0.5,
+                                 color = "#1E293B", margin = margin(b = 6, t = 15)),
+    plot.subtitle = element_text(size = 11, hjust = 0.5, color = "#64748B",
+                                 margin = margin(b = 20)),
+    
+    axis.title.x = element_text(size = 11, face = "bold", color = "#475569",
+                                margin = margin(t = 12)),
+    axis.text.x  = element_text(size = 10, color = "#64748B", face = "bold"),
+    axis.text.y  = element_text(size = 12, color = "#1E293B", face = "bold",
+                                margin = margin(r = 8)),
+    
+    legend.position = "none",
+    plot.margin = margin(25, 25, 30, 25),
+    panel.border = element_rect(color = "#E5E7EB", fill = NA, linewidth = 0.5)
+  ) +
+  
+  annotate("rect", xmin = 55, xmax = 67.5, ymin = -0.85, ymax = -0.25,
+           fill = "white", color = "#E5E7EB", linewidth = 0.4, alpha = 0.9) +
+  annotate("text", x = 61.25, y = -0.55,
+           label = "Data & Visual by ShaxNBA",
+           hjust = 0.5, size = 3.0, color = "#64748B", fontface = "bold.italic")
+
+print(last_plot())
