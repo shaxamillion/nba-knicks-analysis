@@ -1,0 +1,165 @@
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(ggimage)
+
+# Create 3PT data with PPP and ePPP (excluding Robinson)
+threept_comparison <- data.frame(
+  Player_Name = c("Brunson", "Bridges", "OG", "KAT", "Hart", 
+                  "McBride", "Clarkson", "Shamet"),
+  PPP_of_3s = c(1.18, 1.09, 1.08, 1.07, 1.12, 1.23, 0.97, 1.31),
+  ePPP_of_3s = c(1.21, 1.22, 1.16, 1.21, 1.22, 1.21, 1.20, 1.25),
+  Shot_Making = c(-0.04, -0.14, -0.08, -0.14, -0.10, 0.02, -0.23, 0.06),
+  nba_player_id = c(
+    "1628973",  # Brunson
+    "1628969",  # Bridges
+    "1628384",  # OG Anunoby
+    "1626157",  # KAT
+    "1628404",  # Hart
+    "1630540",  # McBride
+    "203903",   # Clarkson
+    "1629013"   # Shamet
+  ),
+  stringsAsFactors = FALSE
+) %>%
+  mutate(
+    headshot_url = paste0("https://cdn.nba.com/headshots/nba/latest/260x190/", nba_player_id, ".png"),
+    # Sort by average of PPP and ePPP for better visual organization
+    avg_value = (PPP_of_3s + ePPP_of_3s) / 2
+  ) %>%
+  arrange(desc(avg_value)) %>%
+  mutate(
+    y_position = row_number()
+  )
+
+# Create the dumbbell chart
+ggplot(threept_comparison) +
+  # Add connecting lines between PPP and ePPP
+  geom_segment(aes(x = PPP_of_3s, xend = ePPP_of_3s, 
+                   y = y_position, yend = y_position,
+                   color = Shot_Making),
+               size = 2, alpha = 0.8) +
+  
+  # Add headshots at PPP position (actual performance)
+  geom_image(aes(x = PPP_of_3s, y = y_position, image = headshot_url), 
+             size = 0.085, asp = 1.3) +
+  
+  # Add headshots at ePPP position (expected performance) - slightly faded
+  geom_image(aes(x = ePPP_of_3s, y = y_position, image = headshot_url), 
+             size = 0.085, asp = 1.3, alpha = 0.6) +
+  
+  # Color scale for shot making
+  scale_color_gradient2(
+    low = "#E74C3C",      # Red for underperforming
+    mid = "#95A5A6",      # Gray for neutral
+    high = "#27AE60",     # Green for overperforming
+    midpoint = 0,
+    name = "Shot Making",
+    labels = scales::number_format(accuracy = 0.01, prefix = "")
+  ) +
+  
+  # Add player name labels on the left
+  geom_text(aes(x = 0.90, y = y_position, label = Player_Name),
+            hjust = 1, size = 4, fontface = "bold", color = "#2C3E50") +
+  
+  # Add vertical reference line at 1.20 (good 3PT efficiency)
+  geom_vline(xintercept = 1.20, 
+             linetype = "dashed", 
+             color = "#95A5A6", 
+             linewidth = 0.5, 
+             alpha = 0.5) +
+  
+  # Annotations
+  annotate("text", x = 0.92, y = 8.5, 
+           label = "Darker headshot = Actual PPP\nFaded headshot = Expected PPP", 
+           size = 3, color = "#7F8C8D", hjust = 0, lineheight = 0.9) +
+  
+  annotate("text", x = 1.20, y = 0.3, 
+           label = "1.20 PPP\n(40% 3PT)", 
+           size = 3, color = "#7F8C8D", hjust = 0.5, lineheight = 0.9) +
+  
+  # Axis formatting
+  scale_x_continuous(
+    breaks = seq(0.95, 1.35, 0.05),
+    limits = c(0.88, 1.35)
+  ) +
+  scale_y_continuous(
+    breaks = NULL,
+    limits = c(0.5, 9)
+  ) +
+  
+  # Labels and title
+  labs(
+    title = "3-Point Shooting: Actual vs Expected Performance",
+    subtitle = "Line shows gap between actual PPP and expected PPP based on shot quality • Green = overperforming, Red = underperforming",
+    x = "Points Per Possession on 3PT Attempts",
+    y = NULL,
+    caption = "Data via ShaxNBA"
+  ) +
+  
+  # Theme
+  theme_minimal(base_size = 14, base_family = "sans") +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, 
+      size = 22, 
+      face = "bold", 
+      color = "#2C3E50",
+      margin = margin(b = 5)
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, 
+      size = 11, 
+      color = "#7F8C8D", 
+      margin = margin(b = 25)
+    ),
+    plot.caption = element_text(
+      size = 9, 
+      color = "#95A5A6", 
+      hjust = 0.5,
+      margin = margin(t = 15)
+    ),
+    plot.background = element_rect(fill = "#FAF9F6", color = NA),
+    panel.background = element_rect(fill = "#FAF9F6", color = NA),
+    panel.grid.major.x = element_line(color = "#E0E0E0", linewidth = 0.3),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(size = 10, color = "#7F8C8D", face = "bold"),
+    axis.text.y = element_blank(),
+    axis.title.x = element_text(size = 12, face = "bold", color = "#34495E", margin = margin(t = 15)),
+    axis.ticks = element_blank(),
+    
+    legend.position = "right",
+    legend.title = element_text(size = 11, face = "bold", color = "#34495E"),
+    legend.text = element_text(size = 10, color = "#7F8C8D"),
+    legend.background = element_rect(fill = "#FFFFFF", color = "#E0E0E0", size = 0.5),
+    legend.key = element_rect(fill = "#FFFFFF", color = NA),
+    legend.key.height = unit(1, "cm"),
+    legend.margin = margin(10, 10, 10, 10),
+    
+    plot.margin = margin(25, 25, 25, 25)
+  )
+
+# Display the plot
+print(last_plot())
+
+# Print summary statistics
+cat("\n=== 3-Point Performance: Actual vs Expected ===\n")
+threept_comparison %>%
+  select(Player_Name, PPP_of_3s, ePPP_of_3s, Shot_Making) %>%
+  arrange(desc(Shot_Making)) %>%
+  print()
+
+cat("\n=== Overperformers (Shot Making > 0) ===\n")
+threept_comparison %>%
+  filter(Shot_Making > 0) %>%
+  arrange(desc(Shot_Making)) %>%
+  select(Player_Name, PPP_of_3s, ePPP_of_3s, Shot_Making) %>%
+  print()
+
+cat("\n=== Biggest Underperformers ===\n")
+threept_comparison %>%
+  filter(Shot_Making < -0.10) %>%
+  arrange(Shot_Making) %>%
+  select(Player_Name, PPP_of_3s, ePPP_of_3s, Shot_Making) %>%
+  print()
