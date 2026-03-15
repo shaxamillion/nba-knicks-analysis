@@ -1,0 +1,146 @@
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(ggimage)
+
+# Create data for Hart and KAT since New Year (games 35+)
+# Only include games where possessions >= 5
+defense_data <- data.frame(
+  Game = c(40, 41, 47, 49, 58, 59, 60, 61, 62,  # Hart games >= 5
+           45, 46, 48, 50, 51, 57, 59, 60, 61),  # KAT games >= 5
+  Opp = c("POR", "SAC", "SAC", "POR", "HOU", "CHI", "CLE", "MIL", "SAS",  # Hart
+          "BKN", "PHI", "TOR", "LAL", "WAS", "DET", "CHI", "CLE", "MIL"),  # KAT
+  Player = c(rep("Hart", 9), rep("KAT", 9)),
+  Possessions = c(11, 6, 18, 24, 17, 1, 23, 7, 24,  # Hart (keeping only >= 5)
+                  20, 7, 6, 20, 22, 21, 13, 3, 5),   # KAT (keeping only >= 5)
+  PPP = c(1.73, 1.00, 0.59, 0.86, 0.41, 3.00, 0.77, 1.22, 0.65,  # Hart
+          1.30, 1.00, 0.76, 1.47, 1.32, 1.01, 1.43, 2.67, 2.20),  # KAT
+  nba_player_id = c(rep("1628404", 9), rep("1626157", 9)),  # Hart and KAT IDs
+  stringsAsFactors = FALSE
+) %>%
+  filter(Possessions >= 5) %>%  # Only keep possessions >= 5
+  mutate(
+    headshot_url = paste0("https://cdn.nba.com/headshots/nba/latest/260x190/", nba_player_id, ".png")
+  )
+
+# Create the scatter plot
+ggplot(defense_data, aes(x = PPP, y = Possessions)) +
+  # Add reference lines
+  geom_vline(xintercept = 1.00, 
+             linetype = "dashed", 
+             color = "#95A5A6", 
+             linewidth = 0.8, 
+             alpha = 0.5) +
+  geom_hline(yintercept = 15, 
+             linetype = "dotted", 
+             color = "#95A5A6", 
+             linewidth = 0.6, 
+             alpha = 0.5) +
+  
+  # Add headshots as points
+  geom_image(aes(image = headshot_url), size = 0.09, asp = 1.3) +
+  
+  # Annotations
+  annotate("text", x = 1.00, y = 26, 
+           label = "1.00 PPP\n(League Avg)", 
+           size = 3, color = "#7F8C8D", hjust = 0.5, lineheight = 0.9) +
+  
+  annotate("text", x = 0.4, y = 16, 
+           label = "15+ Possessions", 
+           size = 3, color = "#7F8C8D", hjust = 0, lineheight = 0.9) +
+  
+  # Labels and title
+  labs(
+    title = "Who is the Center Guarding in the Starting Lineup?",
+    subtitle = "PPP when guarded by the center • Games since New Year • Only games with 5+ possessions",
+    x = "Lineup Points Per Possession (PPP)",
+    y = "Possessions Guarded by Center",
+    caption = "Data via ShaxNBA| Each headshot represents a game matchup"
+  ) +
+  
+  # Axis formatting
+  scale_x_continuous(
+    breaks = seq(0.4, 3.0, 0.2),
+    limits = c(0.35, 2.4)
+  ) +
+  scale_y_continuous(
+    breaks = seq(5, 25, 5),
+    limits = c(4, 26)
+  ) +
+  
+  # Theme
+  theme_minimal(base_size = 14, base_family = "sans") +
+  theme(
+    plot.title = element_text(
+      hjust = 0.5, 
+      size = 22, 
+      face = "bold", 
+      color = "#2C3E50",
+      margin = margin(b = 5)
+    ),
+    plot.subtitle = element_text(
+      hjust = 0.5, 
+      size = 11, 
+      color = "#7F8C8D", 
+      margin = margin(b = 25)
+    ),
+    plot.caption = element_text(
+      size = 9, 
+      color = "#95A5A6", 
+      hjust = 0.5,
+      margin = margin(t = 15)
+    ),
+    plot.background = element_rect(fill = "#FAF9F6", color = NA),
+    panel.background = element_rect(fill = "#FAF9F6", color = NA),
+    panel.grid.major = element_line(color = "#E0E0E0", linewidth = 0.4),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 11, color = "#2C3E50", face = "bold"),
+    axis.title = element_text(size = 13, face = "bold", color = "#34495E"),
+    axis.title.x = element_text(margin = margin(t = 15)),
+    axis.title.y = element_text(margin = margin(r = 15)),
+    axis.ticks = element_blank(),
+    plot.margin = margin(25, 25, 25, 25)
+  )
+
+# Display the plot
+print(last_plot())
+
+# Print summary statistics
+cat("\n=== Hart Defensive Matchups (≥5 possessions) ===\n")
+defense_data %>%
+  filter(Player == "Hart") %>%
+  summarise(
+    Games = n(),
+    Avg_Possessions = mean(Possessions),
+    Avg_PPP_Allowed = mean(PPP),
+    Best_Game = min(PPP),
+    Worst_Game = max(PPP)
+  ) %>%
+  print()
+
+cat("\n=== KAT Defensive Matchups (≥5 possessions) ===\n")
+defense_data %>%
+  filter(Player == "KAT") %>%
+  summarise(
+    Games = n(),
+    Avg_Possessions = mean(Possessions),
+    Avg_PPP_Allowed = mean(PPP),
+    Best_Game = min(PPP),
+    Worst_Game = max(PPP)
+  ) %>%
+  print()
+
+cat("\n=== Toughest Matchups (Highest PPP Allowed) ===\n")
+defense_data %>%
+  arrange(desc(PPP)) %>%
+  select(Player, Opp, Possessions, PPP) %>%
+  head(5) %>%
+  print()
+
+cat("\n=== Best Defensive Games (Lowest PPP Allowed) ===\n")
+defense_data %>%
+  arrange(PPP) %>%
+  select(Player, Opp, Possessions, PPP) %>%
+  head(5) %>%
+  print()
