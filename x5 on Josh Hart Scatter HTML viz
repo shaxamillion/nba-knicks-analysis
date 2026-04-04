@@ -1,0 +1,144 @@
+library(plotly)
+library(dplyr)
+library(base64enc)
+library(htmlwidgets)
+
+# Download Hart's headshot locally first
+hart_url  <- "https://cdn.nba.com/headshots/nba/latest/260x190/1628404.png"
+tmp_file  <- tempfile(fileext = ".png")
+download.file(hart_url, tmp_file, mode = "wb", quiet = TRUE)
+
+# Encode as base64
+hart_b64 <- paste0(
+  "data:image/png;base64,",
+  base64enc::base64encode(tmp_file)
+)
+
+# Dataset
+hart_data <- data.frame(
+  GM   = c(8, 18, 20, 26, 31, 40, 41, 42, 47, 49, 54, 58, 60, 62, 64, 65, 76, 77),
+  Date = c("Nov 05, 2025","Nov 28, 2025","Dec 02, 2025","Dec 16, 2025","Dec 25, 2025",
+           "Jan 11, 2026","Jan 14, 2026","Jan 15, 2026","Jan 27, 2026","Jan 30, 2026",
+           "Feb 08, 2026","Feb 21, 2026","Feb 24, 2026","Mar 01, 2026","Mar 04, 2026",
+           "Mar 06, 2026","Mar 29, 2026","Mar 31, 2026"),
+  Opp  = c("MIN","MIL","BOS","SAS","CLE","POR","SAC","GSW","SAC","POR",
+           "BOS","HOU","CLE","SAS","OKC","DEN","OKC","HOU"),
+  Poss = c(17, 25, 22, 17, 22, 20, 26, 19, 18, 24, 21, 20, 30, 34, 29, 20, 32, 26),
+  PPP  = c(1.41,1.20,1.04,0.88,0.79,1.15,0.64,1.26,0.59,0.86,1.20,0.43,0.79,0.70,0.72,1.15,0.77,0.68),
+  stringsAsFactors = FALSE
+)
+
+avg_ppp  <- mean(hart_data$PPP)
+avg_poss <- mean(hart_data$Poss)
+
+col_bg    <- "#FAF9F6"
+col_panel <- "#F2F1EE"
+col_text  <- "#2C3E50"
+col_sub   <- "#7F8C8D"
+col_grid  <- "#E0E0E0"
+col_good  <- "#27AE60"
+col_bad   <- "#E74C3C"
+
+# One image per point using base64
+images_list <- lapply(1:nrow(hart_data), function(i) {
+  list(
+    source  = hart_b64,
+    x       = hart_data$Poss[i],
+    y       = hart_data$PPP[i],
+    xref    = "x",
+    yref    = "y",
+    sizex   = 2.0,
+    sizey   = 0.09,
+    xanchor = "center",
+    yanchor = "middle",
+    layer   = "above"
+  )
+})
+
+hart_plot <- plot_ly(
+  hart_data,
+  x    = ~Poss,
+  y    = ~PPP,
+  type = "scatter",
+  mode = "markers",
+  marker = list(size = 28, opacity = 0, color = "rgba(0,0,0,0)"),
+  text = ~paste0(
+    "<b>Game ", GM, " vs ", Opp, "</b><br>",
+    "Date: ", Date, "<br>",
+    "Possessions: ", Poss, "<br>",
+    "PPP: ", sprintf("%.2f", PPP)
+  ),
+  hoverinfo = "text"
+) %>%
+  layout(
+    title = list(
+      text = "<b>Josh Hart guarded by Opposing Centers</b>",
+      font = list(size = 20, color = col_text, family = "sans-serif"),
+      x    = 0.5
+    ),
+    xaxis = list(
+      title         = "<b>Possessions Guarded by Opposing Center</b>",
+      range         = c(15.5, 35.5),
+      tickfont      = list(color = col_sub),
+      titlefont     = list(color = col_text, size = 13),
+      gridcolor     = col_grid,
+      zerolinecolor = col_grid,
+      dtick         = 2
+    ),
+    yaxis = list(
+      title         = "<b>Points Per Possession (PPP)</b>",
+      range         = c(0.35, 1.50),
+      tickfont      = list(color = col_sub),
+      titlefont     = list(color = col_text, size = 13),
+      gridcolor     = col_grid,
+      zerolinecolor = col_grid,
+      dtick         = 0.10
+    ),
+    paper_bgcolor = col_bg,
+    plot_bgcolor  = col_panel,
+    images        = images_list,
+    shapes = list(
+      list(type = "rect", x0 = avg_poss, x1 = 35.5, y0 = avg_ppp, y1 = 1.50,
+           fillcolor = col_good, opacity = 0.06, line = list(width = 0)),
+      list(type = "rect", x0 = 15.5, x1 = avg_poss, y0 = avg_ppp, y1 = 1.50,
+           fillcolor = col_good, opacity = 0.03, line = list(width = 0)),
+      list(type = "rect", x0 = avg_poss, x1 = 35.5, y0 = 0.35, y1 = avg_ppp,
+           fillcolor = col_bad,  opacity = 0.06, line = list(width = 0)),
+      list(type = "rect", x0 = 15.5, x1 = avg_poss, y0 = 0.35, y1 = avg_ppp,
+           fillcolor = col_bad,  opacity = 0.03, line = list(width = 0)),
+      list(type = "line", x0 = 15.5, x1 = 35.5,
+           y0 = avg_ppp, y1 = avg_ppp,
+           line = list(color = col_sub, dash = "dash", width = 1.2)),
+      list(type = "line", x0 = avg_poss, x1 = avg_poss,
+           y0 = 0.35, y1 = 1.50,
+           line = list(color = col_sub, dash = "dash", width = 1.2))
+    ),
+    annotations = list(
+      list(x = 35.3, y = 1.47, text = "<b>High Volume · High Efficiency</b>",
+           showarrow = FALSE, xanchor = "right", font = list(color = col_good, size = 11)),
+      list(x = 35.3, y = 0.38, text = "<b>High Volume · Low Efficiency</b>",
+           showarrow = FALSE, xanchor = "right", font = list(color = col_bad,  size = 11)),
+      list(x = 15.7, y = 1.47, text = "<b>Low Volume · High Efficiency</b>",
+           showarrow = FALSE, xanchor = "left",  font = list(color = col_good, size = 11)),
+      list(x = 15.7, y = 0.38, text = "<b>Low Volume · Low Efficiency</b>",
+           showarrow = FALSE, xanchor = "left",  font = list(color = col_bad,  size = 11)),
+      list(x = 15.7, y = avg_ppp + 0.03,
+           text = paste0("Avg PPP: ", round(avg_ppp, 2)),
+           showarrow = FALSE, xanchor = "left", font = list(color = col_sub, size = 10)),
+      list(x = avg_poss + 0.2, y = 0.38,
+           text = paste0("Avg Poss: ", round(avg_poss, 1)),
+           showarrow = FALSE, xanchor = "left", font = list(color = col_sub, size = 10))
+    ),
+    hoverlabel = list(
+      bgcolor     = "#FFFFFF",
+      bordercolor = col_text,
+      font        = list(family = "sans-serif", size = 13, color = col_text)
+    ),
+    margin = list(t = 60, b = 60, l = 70, r = 30)
+  )
+
+# Display in RStudio
+hart_plot
+
+# Save to Downloads for Netlify
+saveWidget(hart_plot, "~/Downloads/hart_chart.html", selfcontained = TRUE)
