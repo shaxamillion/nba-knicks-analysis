@@ -1,0 +1,151 @@
+library(tidyverse)
+library(glue)
+library(ggpath)
+library(shadowtext)
+
+theme_f5 <- function(font_size = 9) {
+  theme_minimal(base_size = font_size, base_family = "sans") %+replace%
+    theme(
+      plot.background  = element_rect(fill = 'floralwhite', color = "floralwhite"),
+      panel.grid.minor = element_blank(),
+      plot.title       = element_text(hjust = 0.5, size = 13.5, face = 'bold'),
+      plot.subtitle    = element_text(color = 'gray50', hjust = 0.5,
+                                      margin = margin(2.5, 0, 5, 0), size = 6),
+      plot.caption     = element_text(color = 'gray65', margin = margin(5, 0, 0, 0),
+                                      hjust = 0.5, size = 7)
+    )
+}
+
+lineups <- tibble(
+  Lineup = c(
+    "Brunson - Hart - Bridges - OG - KAT",
+    "Brunson - McBride - Hart - Bridges - KAT",
+    "Brunson - Shamet - Bridges - OG - KAT",
+    "Brunson - Shamet - Hart - Bridges - KAT",
+    "Brunson - Hart - Bridges - OG - Robinson"
+  ),
+  Plays = c(842, 237, 200, 116, 96),
+  Net   = c(-0.8, 6.5, -1.1, 1.9, 3.5),
+  logo_url = rep("https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg", 5),
+  p1 = rep("https://cdn.nba.com/headshots/nba/latest/260x190/1628973.png", 5),
+  p2 = c(
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628404.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1630540.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1629013.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1629013.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628404.png"
+  ),
+  p3 = c(
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628969.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628404.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628969.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628404.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628969.png"
+  ),
+  p4 = c(
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628384.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628969.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628384.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628969.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1628384.png"
+  ),
+  p5 = c(
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1626157.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1626157.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1626157.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1626157.png",
+    "https://cdn.nba.com/headshots/nba/latest/260x190/1629011.png"
+  ),
+  row_color = rep("#006BB6", 5)
+) %>%
+  arrange(desc(Plays)) %>%
+  mutate(
+    row_num       = row_number(),
+    lineup_factor = fct_reorder(as.factor(Lineup), row_num),
+    
+    # Light net rating colors
+    net_color = case_when(
+      Net >= 3   ~ "#A8D5B5",   # light green
+      Net >= 0   ~ "#C8E6C9",   # very light green
+      Net >= -1  ~ "#FFCCBC",   # light orange
+      TRUE       ~ "#FFCDD2"    # light red
+    ),
+    
+    # Dark text color for net rating
+    net_text_color = case_when(
+      Net >= 3   ~ "#1B5E20",
+      Net >= 0   ~ "#2E7D32",
+      Net >= -1  ~ "#BF360C",
+      TRUE       ~ "#B71C1C"
+    ),
+    
+    net_label  = ifelse(Net >= 0, paste0("+", Net), as.character(Net)),
+    poss_label = paste0(Plays, " poss")
+  )
+
+ggplot(lineups, aes(x = lineup_factor, y = 1)) +
+  facet_wrap(~lineup_factor, nrow = 5, scales = 'free_x') +
+  
+  # Background tint
+  geom_rect(aes(fill = row_color),
+            xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
+            alpha = 0.06) +
+  
+  # Border
+  geom_rect(aes(color = row_color),
+            xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
+            fill = NA, linewidth = 0.5) +
+  
+  # Net rating bar (light colored)
+  geom_rect(aes(fill = net_color),
+            xmin = 1.42, xmax = Inf, ymin = 0.90, ymax = 1.10) +
+  
+  # Net rating value (dark text)
+  geom_text(aes(x = 1.515, label = net_label, color = net_text_color),
+            hjust = 0.5, vjust = 0.2, fontface = 'bold', size = 6.0) +
+  
+  # Net rating sub-label
+  geom_text(aes(x = 1.515, label = "Net Rtg"),
+            hjust = 0.5, vjust = 2.2, size = 2.1,
+            color = "gray40", fontface = "italic") +
+  
+  # Lineup name
+  geom_text(aes(x = lineup_factor, label = Lineup),
+            hjust = 0, nudge_x = -0.10, vjust = -0.3,
+            fontface = 'bold', size = 3.5, color = "#1a1a1a") +
+  
+  # Possessions under lineup name
+  geom_text(aes(x = lineup_factor, label = poss_label),
+            hjust = 0, nudge_x = -0.10, vjust = 1.6,
+            size = 2.9, color = "gray45") +
+  
+  # NYK logo
+  geom_from_path(aes(path = logo_url),
+                 width = 0.10, hjust = 5.1, vjust = 0.5) +
+  
+  # 5 headshots
+  geom_from_path(aes(path = p1), width = 0.12, hjust = 4.05, vjust = 0.5) +
+  geom_from_path(aes(path = p2), width = 0.12, hjust = 3.52, vjust = 0.5) +
+  geom_from_path(aes(path = p3), width = 0.12, hjust = 2.99, vjust = 0.5) +
+  geom_from_path(aes(path = p4), width = 0.12, hjust = 2.46, vjust = 0.5) +
+  geom_from_path(aes(path = p5), width = 0.12, hjust = 1.93, vjust = 0.5) +
+  
+  scale_fill_identity() +
+  scale_color_identity() +
+  coord_cartesian(clip = 'off') +
+  theme_f5() +
+  theme(
+    legend.position = 'none',
+    axis.text       = element_blank(),
+    axis.title      = element_blank(),
+    strip.text      = element_blank(),
+    panel.spacing.y = unit(0.3, "lines"),
+    panel.grid      = element_blank()
+  ) +
+  labs(
+    title    = "NYK Five-Man Lineup Usage — 2025-26",
+    subtitle = "Sorted by half-court offensive possessions | Stabilized Net Rating",
+    caption  = "Possessions data and viz via ShaxNBA  | Stabilized Net via Databallr"
+  )
+
+print(last_plot())
