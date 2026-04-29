@@ -1,0 +1,145 @@
+library(tidyverse)
+library(ggpath)
+
+teams <- tibble(
+  Opp = c("OKC","LAC","LAL","ATL","NOP","HOU","IND","UTA","SAS","CHI",
+          "SAC","MEM","BOS","ORL","PHI","GSW","BKN","TOR","DET","MIL",
+          "DEN","PHX","WAS","POR","DAL","CLE","CHA","MIA","MIN"),
+  Switch = c(26.3,36.2,53.4,17.2,34.8,20.6,15.6,41.6,27.4,25.7,
+             35.7,36.4,29.4,29.4,14.0,42.6,39.4,35.8,21.8,39.6,
+             25.6,47.3,12.8,11.9,36.7,44.6,45.0,35.7,23.6),
+  bar_color = c(
+    "#007AC1", # OKC
+    "#C8102E", # LAC
+    "#552583", # LAL
+    "#E03A3E", # ATL
+    "#0C2340", # NOP
+    "#CE1141", # HOU
+    "#002D62", # IND
+    "#00471B", # UTA
+    "#C4CED4", # SAS
+    "#CE1141", # CHI
+    "#5A2D81", # SAC
+    "#5D76A9", # MEM
+    "#007A33", # BOS
+    "#0077C0", # ORL
+    "#006BB6", # PHI
+    "#1D428A", # GSW
+    "#000000", # BKN
+    "#CE1141", # TOR
+    "#C8102E", # DET
+    "#00471B", # MIL
+    "#0E2240", # DEN
+    "#1D1160", # PHX
+    "#002B5C", # WAS
+    "#E03A3E", # POR
+    "#00538C", # DAL
+    "#860038", # CLE
+    "#00788C", # CHA
+    "#98002E", # MIA
+    "#0C2340"  # MIN
+  ),
+  logo_url = c(
+    "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612754/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612741/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612761/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612749/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
+    "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg"
+  )
+) %>%
+  arrange(Switch) %>%
+  mutate(Opp = factor(Opp, levels = Opp))
+
+avg_switch <- mean(teams$Switch)
+
+ggplot(teams, aes(x = Switch, y = Opp)) +
+  
+  # Bars
+  geom_col(aes(fill = bar_color), width = 0.7, alpha = 0.85) +
+  
+  # Average line
+  geom_vline(xintercept = avg_switch, linetype = "dashed",
+             color = "#475569", linewidth = 0.7) +
+  annotate("text", x = avg_switch + 0.6, y = 0.61,
+           label = paste0("Avg: ", round(avg_switch, 1), "%"),
+           hjust = 0, size = 2.8, color = "#475569", fontface = "italic") +
+  
+  # Percentage labels
+  geom_text(aes(label = paste0(Switch, "%"), color = bar_color),
+            hjust = -0.2, fontface = "bold", size = 3.0) +
+  
+  # Team logos to the left
+  geom_from_path(aes(path = logo_url, x = -4.5),
+                 width = 0.030, hjust = 0.5) +
+  
+  scale_fill_identity() +
+  scale_color_identity() +
+  
+  scale_x_continuous(
+    limits = c(-8, 65),
+    breaks = seq(0, 60, 10),
+    labels = function(x) ifelse(x < 0, "", paste0(x, "%")),
+    expand = c(0, 0)
+  ) +
+  
+  # Taller plot via aspect ratio
+  coord_fixed(ratio = 1.6) +
+  
+  labs(
+    title    = "Ball Screen Switch% vs New York Knicks — 2025-26",
+    subtitle = "Base screener coverage · how often each opponent switched on Knicks ball screens",
+    caption  = "Data & Visual by ShaxNBA",
+    x        = "Switch %",
+    y        = NULL
+  ) +
+  
+  theme_minimal(base_size = 12, base_family = "sans") +
+  theme(
+    plot.background    = element_rect(fill = "floralwhite", color = "floralwhite"),
+    panel.background   = element_rect(fill = "floralwhite", color = NA),
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_line(color = "#E5E7EB", linewidth = 0.3),
+    panel.grid.minor   = element_blank(),
+    
+    plot.title    = element_text(size = 15, face = "bold", hjust = 0.5,
+                                 color = "#1E293B", margin = margin(b = 6, t = 15)),
+    plot.subtitle = element_text(size = 9, hjust = 0.5, color = "#64748B",
+                                 margin = margin(b = 15)),
+    plot.caption  = element_text(size = 7, hjust = 0.5, color = "#94A3B8",
+                                 margin = margin(t = 10)),
+    
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x  = element_text(size = 9, color = "#64748B"),
+    axis.title.x = element_text(size = 10, face = "bold", color = "#475569",
+                                margin = margin(t = 10)),
+    
+    plot.margin  = margin(20, 30, 15, 20),
+    panel.border = element_rect(color = "#E5E7EB", fill = NA, linewidth = 0.5)
+  )
+
+print(last_plot())
