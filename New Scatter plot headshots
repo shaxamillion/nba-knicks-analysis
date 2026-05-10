@@ -1,0 +1,160 @@
+library(tidyverse)
+library(ggplot2)
+library(ggimage)
+library(ggtext)
+
+# Create dataset from the table (players with 20+ transition possessions)
+transition_stats <- data.frame(
+  Player = c("Dylan Harper", "Mikal Bridges", "Anthony Black", "Ayo Dosunmu",
+             "Ja'Kobe Walter", "Nickeil Alexander-Walker", "Rui Hachimura",
+             "Tobias Harris", "LeBron James", "Deni Avdija", "Duncan Robinson",
+             "Jalen Brunson", "VJ Edgecombe", "Scottie Barnes", "Jaylen Brown",
+             "Shai Gilgeous-Alexander", "Cade Cunningham", "Keldon Johnson",
+             "Paolo Banchero", "RJ Barrett", "Luke Kennard", "Stephon Castle",
+             "Jaden McDaniels", "Tyrese Maxey", "Desmond Bane", "Jalen Suggs",
+             "De'Aaron Fox", "Devin Vassell", "Donovan Mitchell", "Jamal Murray",
+             "Julius Randle", "Josh Hart", "Amen Thompson", "James Harden"),
+  Team = c("SAS", "NYK", "ORL", "MIN", "TOR", "ATL", "LAL", "DET", "LAL",
+           "POR", "DET", "NYK", "PHI", "TOR", "BOS", "OKC", "DET", "SAS",
+           "ORL", "TOR", "LAL", "SAS", "MIN", "PHI", "ORL", "ORL", "SAS",
+           "SAS", "CLE", "DEN", "MIN", "NYK", "HOU", "CLE"),
+  POSS = c(24, 22, 20, 23, 27, 22, 22, 26, 41, 23, 22, 25, 26, 40, 30,
+           31, 36, 24, 39, 43, 25, 30, 22, 35, 24, 20, 27, 26, 33, 24,
+           23, 25, 23, 23),
+  PPP = c(1.50, 1.50, 1.50, 1.39, 1.37, 1.36, 1.36, 1.35, 1.22, 1.22,
+          1.18, 1.16, 1.15, 1.13, 1.10, 1.10, 1.08, 1.08, 1.05, 1.05,
+          1.04, 1.00, 1.00, 0.97, 0.96, 0.90, 0.89, 0.89, 0.88, 0.88,
+          0.87, 0.80, 0.78, 0.65),
+  nba_player_id = c("1642355", "1627763", "1641747", "1630166", "1642256",
+                    "1629638", "203585", "202699", "2544", "1629029",
+                    "1628384", "1629029", "1642282", "1629628", "1627759",
+                    "1628983", "1628384", "1629010", "1629029", "1629628",
+                    "1628366", "1641771", "1628978", "1629628", "1629010",
+                    "1628990", "1628384", "1629628", "1629029", "203999",
+                    "1628978", "203522", "1641706", "201935"),
+  stringsAsFactors = FALSE
+)
+
+# Correct NBA player IDs
+player_ids <- c(
+  "Dylan Harper" = "1642844",
+  "Mikal Bridges" = "1628969",
+  "Anthony Black" = "1641710",
+  "Ayo Dosunmu" = "1630245",
+  "Ja'Kobe Walter" = "1642266",
+  "Nickeil Alexander-Walker" = "1629638",
+  "Rui Hachimura" = "1629060",
+  "Tobias Harris" = "202699",
+  "LeBron James" = "2544",
+  "Deni Avdija" = "1630166",
+  "Duncan Robinson" = "1629130",
+  "Jalen Brunson" = "1628973",
+  "VJ Edgecombe" = "1642845",
+  "Scottie Barnes" = "1630567",
+  "Jaylen Brown" = "1627759",
+  "Shai Gilgeous-Alexander" = "1628983",
+  "Cade Cunningham" = "1630595",
+  "Keldon Johnson" = "1629640",
+  "Paolo Banchero" = "1631094",
+  "RJ Barrett" = "1629628",
+  "Luke Kennard" = "1628379",
+  "Stephon Castle" = "1642264",
+  "Jaden McDaniels" = "1630183",
+  "Tyrese Maxey" = "1630178",
+  "Desmond Bane" = "1630217",
+  "Jalen Suggs" = "1630591",
+  "De'Aaron Fox" = "1628368",
+  "Devin Vassell" = "1630170",
+  "Donovan Mitchell" = "1628378",
+  "Jamal Murray" = "1627750",
+  "Julius Randle" = "203944",
+  "Josh Hart" = "1628404",
+  "Amen Thompson" = "1641708",
+  "James Harden" = "201935"
+)
+
+transition_stats$nba_player_id <- player_ids[transition_stats$Player]
+transition_stats$headshot_url <- paste0(
+  "https://cdn.nba.com/headshots/nba/latest/260x190/",
+  transition_stats$nba_player_id, ".png"
+)
+
+# Team colors for subtle dot accent
+team_colors <- c(
+  "SAS" = "#C4CED4", "NYK" = "#F58426", "ORL" = "#0077C0", "MIN" = "#236192",
+  "TOR" = "#CE1141", "ATL" = "#E03A3E", "LAL" = "#552583", "DET" = "#C8102E",
+  "POR" = "#E03A3E", "DET" = "#C8102E", "BOS" = "#007A33", "OKC" = "#007AC1",
+  "HOU" = "#CE1141", "CLE" = "#860038", "DEN" = "#0E2240", "PHI" = "#006BB6",
+  "CHA" = "#1D1160", "CHI" = "#CE1141"
+)
+
+transition_stats$team_color <- team_colors[transition_stats$Team]
+
+# Reference lines
+avg_ppp  <- mean(transition_stats$PPP)
+avg_poss <- mean(transition_stats$POSS)
+
+# Plot
+ggplot(transition_stats, aes(x = PPP, y = POSS)) +
+  
+  # Quadrant shading
+  annotate("rect", xmin = avg_ppp, xmax = Inf,   ymin = avg_poss, ymax = Inf,
+           fill = "#d5f4e6", alpha = 0.35) +
+  annotate("rect", xmin = -Inf,   xmax = avg_ppp, ymin = -Inf,    ymax = avg_poss,
+           fill = "#fde8e8", alpha = 0.35) +
+  
+  # Reference lines
+  geom_hline(yintercept = avg_poss, linetype = "dashed", color = "#aaaaaa", linewidth = 0.5) +
+  geom_vline(xintercept = avg_ppp,  linetype = "dashed", color = "#aaaaaa", linewidth = 0.5) +
+  
+  # Headshots
+  geom_image(aes(image = headshot_url), size = 0.065, asp = 1.4) +
+  
+  # Quadrant labels
+  annotate("text", x = max(transition_stats$PPP) - 0.01, y = max(transition_stats$POSS) - 0.5,
+           label = "High Volume · High Efficiency", hjust = 1, size = 3,
+           color = "#27ae60", fontface = "bold") +
+  annotate("text", x = min(transition_stats$PPP) + 0.01, y = min(transition_stats$POSS) + 0.5,
+           label = "Low Volume · Low Efficiency", hjust = 0, size = 3,
+           color = "#e74c3c", fontface = "bold") +
+  annotate("text", x = max(transition_stats$PPP) - 0.01, y = min(transition_stats$POSS) + 0.5,
+           label = "Low Volume · High Efficiency", hjust = 1, size = 3,
+           color = "#aaaaaa", fontface = "italic") +
+  annotate("text", x = min(transition_stats$PPP) + 0.01, y = max(transition_stats$POSS) - 0.5,
+           label = "High Volume · Low Efficiency", hjust = 0, size = 3,
+           color = "#aaaaaa", fontface = "italic") +
+  
+  # Scales
+  scale_x_continuous(
+    name   = "Points Per Possession (PPP)",
+    breaks = seq(0.6, 1.6, by = 0.1),
+    limits = c(0.60, 1.58)
+  ) +
+  scale_y_continuous(
+    name   = "Possessions (POSS)",
+    breaks = seq(18, 46, by = 4),
+    limits = c(18, 46)
+  ) +
+  
+  # Title & caption
+  labs(
+    title    = "Transition Chance Efficiency",
+    subtitle = "Players with 20+ Transition Possessions | 2025 NBA Playoffs",
+    caption  = "Dashed lines = averages  |  Data via Second Spectrum"
+  ) +
+  
+  # Theme
+  theme_minimal(base_family = "Arial") +
+  theme(
+    plot.background    = element_rect(fill = "#faf8f5", color = NA),
+    panel.background   = element_rect(fill = "#faf8f5", color = NA),
+    panel.grid.major   = element_line(color = "#e8e4df", linewidth = 0.4),
+    panel.grid.minor   = element_blank(),
+    plot.title         = element_text(size = 18, face = "bold",   color = "#2c3e50",
+                                      margin = margin(b = 4)),
+    plot.subtitle      = element_text(size = 12, color = "#7f8c8d", margin = margin(b = 12)),
+    plot.caption       = element_text(size = 9,  color = "#aaaaaa", hjust = 0),
+    axis.title         = element_text(size = 11, color = "#2c3e50", face = "bold"),
+    axis.text          = element_text(size = 9,  color = "#555555"),
+    plot.margin        = margin(20, 20, 15, 20)
+  )
