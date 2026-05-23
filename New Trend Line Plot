@@ -1,0 +1,214 @@
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+data <- data.frame(
+  GM = c(1:82, 84:93),
+  Opp = c(
+    "CLE","BOS","MIA","MIL","CHI","CHI","WSH","MIN","BKN","MEM",
+    "ORL","MIA","MIA","DAL","ORL","BKN","CHA","MIL","TOR","BOS",
+    "CHA","UTA","ORL","TOR","ORL","SAS","IND","PHI","MIA","MIN",
+    "CLE","ATL","NOP","SAS","ATL","PHI","DET","LAC","PHX","POR",
+    "SAC","GSW","PHX","DAL","BKN","PHI","SAC","TOR","POR","LAL",
+    "WAS","DEN","DET","BOS","IND","PHI","DET","HOU","CHI","CLE",
+    "MIL","SAS","TOR","OKC","DEN","LAL","LAC","UTA","IND","GSW",
+    "IND","BKN","WAS","NOP","CHA","OKC","HOU","MEM","CHI","ATL",
+    "BOS","TOR",
+    "ATL","ATL","ATL","ATL","ATL","ATL",
+    "PHI","PHI","PHI","PHI"
+  ),
+  Playcall = c(
+    14,8,9,4,26,22,10,16,20,9,
+    21,7,17,31,25,34,24,24,18,36,
+    27,50,33,23,26,31,37,30,31,37,
+    23,32,19,12,29,26,37,41,25,34,
+    39,35,41,28,28,30,34,21,20,14,
+    35,33,32,20,27,33,28,43,22,34,
+    27,22,28,23,30,36,37,50,43,23,
+    46,33,32,37,49,42,39,47,37,56,
+    45,35,
+    47,45,38,44,38,31,
+    32,27,23,39
+  ),
+  Motion = c(
+    29,41,50,46,42,37,37,33,36,47,
+    33,31,42,27,25,36,38,25,40,26,
+    23,17,23,26,29,23,24,29,27,24,
+    19,26,35,28,23,23,16,23,17,12,
+    9,20,16,11,20,15,18,18,30,22,
+    22,20,16,15,17,17,15,1,18,15,
+    16,8,13,6,18,12,10,9,9,12,
+    20,11,13,13,11,12,8,18,12,8,
+    14,17,
+    9,4,5,17,13,17,
+    27,15,11,23
+  ),
+  Freelance = c(
+    45,38,36,41,25,26,44,40,29,35,
+    36,48,31,34,42,23,32,37,35,30,
+    41,23,37,47,36,35,36,29,38,36,
+    49,41,38,48,43,44,40,31,43,46,
+    42,37,34,50,36,48,45,55,41,55,
+    27,41,40,59,42,40,53,51,54,36,
+    60,51,58,37,44,44,32,46,55,31,
+    48,44,41,36,38,45,26,33,31,34,
+    30,30,
+    40,36,51,26,35,44,
+    37,50,42,35
+  )
+)
+
+# Verify lengths
+stopifnot(nrow(data) == 92)
+
+# Sequential index and phase
+data <- data %>%
+  arrange(GM) %>%
+  mutate(
+    Game_seq = row_number(),
+    Phase    = ifelse(GM <= 82, "Regular Season", "Playoffs")
+  )
+
+playoff_seq <- data$Game_seq[data$GM == 84]
+
+# Long format
+data_long <- data %>%
+  select(Game_seq, GM, Phase, Playcall, Motion, Freelance) %>%
+  pivot_longer(
+    cols      = c(Playcall, Motion, Freelance),
+    names_to  = "Metric",
+    values_to = "Pct"
+  ) %>%
+  mutate(Metric = recode(Metric,
+                         "Playcall"  = "Set / Play-Call",
+                         "Motion"    = "Motion Offense",
+                         "Freelance" = "Freelance"))
+
+metric_colors <- c(
+  "Set / Play-Call" = "#0051BA",
+  "Motion Offense"  = "#10B981",
+  "Freelance"       = "#F59E0B"
+)
+
+# Averages
+reg_avgs <- data_long %>%
+  filter(Phase == "Regular Season") %>%
+  group_by(Metric) %>%
+  summarise(Avg = mean(Pct, na.rm = TRUE), .groups = "drop")
+
+playoff_avgs <- data_long %>%
+  filter(Phase == "Playoffs") %>%
+  group_by(Metric) %>%
+  summarise(Avg = mean(Pct, na.rm = TRUE), .groups = "drop")
+
+ggplot(data_long, aes(x = Game_seq, y = Pct,
+                      color = Metric, fill = Metric)) +
+  
+  # ── Playoff shading ──────────────────────────────────────────────────
+  annotate("rect",
+           xmin = playoff_seq - 0.5, xmax = max(data$Game_seq) + 0.5,
+           ymin = 0, ymax = 63,
+           fill = "#FFF7ED", alpha = 0.7) +
+  
+  annotate("text", x = playoff_seq + 0.4, y = 61,
+           label = "◀  Playoffs",
+           hjust = 0, size = 3.2, color = "#E07B00", fontface = "bold") +
+  
+  geom_vline(xintercept = playoff_seq - 0.5,
+             linetype = "dashed", color = "#E07B00",
+             linewidth = 0.9, alpha = 0.8) +
+  
+  # ── Regular season avg lines ─────────────────────────────────────────
+  geom_segment(data = reg_avgs,
+               aes(x = 0.5, xend = playoff_seq - 0.5,
+                   y = Avg, yend = Avg, color = Metric),
+               linetype = "dotted", linewidth = 0.6,
+               alpha = 0.5, inherit.aes = FALSE) +
+  
+  geom_text(data = reg_avgs,
+            aes(x = 1, y = Avg + 2.5,
+                label = paste0("RS: ", round(Avg, 1), "%"),
+                color = Metric),
+            hjust = 0, size = 2.3, fontface = "italic",
+            inherit.aes = FALSE) +
+  
+  # ── Raw lines ────────────────────────────────────────────────────────
+  geom_line(alpha = 0.18, linewidth = 0.6) +
+  
+  # ── LOESS trend ──────────────────────────────────────────────────────
+  geom_smooth(method = "loess", span = 0.22, se = TRUE,
+              linewidth = 1.8, alpha = 0.10) +
+  
+  # ── Playoff points ───────────────────────────────────────────────────
+  geom_point(data = filter(data_long, Phase == "Playoffs"),
+             aes(fill = Metric),
+             shape = 21, size = 3.5,
+             color = "white", stroke = 1.4,
+             inherit.aes = TRUE) +
+  
+  # ── Playoff avg labels ───────────────────────────────────────────────
+  geom_text(data = playoff_avgs,
+            aes(x = max(data$Game_seq) + 0.5,
+                y = Avg,
+                label = paste0(round(Avg, 1), "%"),
+                color = Metric),
+            hjust = 0, size = 2.8, fontface = "bold",
+            inherit.aes = FALSE) +
+  
+  # ── Scales ───────────────────────────────────────────────────────────
+  scale_color_manual(values = metric_colors) +
+  scale_fill_manual(values  = metric_colors) +
+  
+  scale_x_continuous(
+    name   = "Game",
+    breaks = c(seq(1, 82, 10), playoff_seq),
+    labels = c(paste0("G", seq(1, 82, 10)), "PO"),
+    expand = c(0.01, 0)
+  ) +
+  scale_y_continuous(
+    name   = "Frequency %",
+    breaks = seq(0, 60, 10),
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, 64),
+    expand = c(0, 0)
+  ) +
+  
+  labs(
+    title    = "Knicks Playcalling Frequencies — 2025-26 Season",
+    subtitle = "Set / Play-Call  ·  Motion Offense  ·  Freelance  ·  Game by game with LOESS trend",
+    caption  = "Data & Visual by ShaxNBA",
+    color    = NULL,
+    fill     = NULL
+  ) +
+  
+  theme_minimal(base_size = 12, base_family = "sans") +
+  theme(
+    plot.background    = element_rect(fill = "#FAF9F6", color = NA),
+    panel.background   = element_rect(fill = "#FFFFFF", color = NA),
+    panel.grid.major.y = element_line(color = "#E0E0E0", linewidth = 0.4),
+    panel.grid.minor.y = element_line(color = "#F0F0F0", linewidth = 0.2),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    
+    plot.title    = element_text(hjust = 0.5, size = 18, face = "bold",
+                                 color = "#2C3E50", margin = margin(b = 8, t = 15)),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, color = "#5D6D7E",
+                                 margin = margin(b = 20)),
+    plot.caption  = element_text(size = 8, color = "#95A5A6", hjust = 1,
+                                 margin = margin(t = 15)),
+    
+    legend.position  = "top",
+    legend.text      = element_text(size = 10, face = "bold", color = "#2C3E50"),
+    legend.key.width = unit(1.8, "cm"),
+    
+    axis.text.x  = element_text(size = 9, color = "#34495E", face = "bold"),
+    axis.text.y  = element_text(size = 10, color = "#34495E", face = "bold"),
+    axis.title   = element_text(size = 11, face = "bold", color = "#2C3E50"),
+    axis.title.x = element_text(margin = margin(t = 12)),
+    axis.title.y = element_text(margin = margin(r = 12)),
+    axis.ticks   = element_blank(),
+    
+    plot.margin  = margin(25, 45, 25, 25)
+  )
+
+print(last_plot())
